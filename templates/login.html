@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="日報">
+  <meta name="theme-color" content="#1a3c5e">
+  <link rel="manifest" href="/static/manifest.json">
+  <title>ログイン | 成形管理日報</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; font-family: -apple-system, 'Hiragino Sans', sans-serif;
+      background: linear-gradient(160deg, #1a3c5e 0%, #2a5fa0 100%);
+    }
+    .wrap {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+    }
+    .logo { text-align: center; margin-bottom: 36px; }
+    .logo .icon { font-size: 60px; }
+    .logo h1 { color: #fff; font-size: 22px; margin-top: 12px; font-weight: 700; }
+    .logo p  { color: rgba(255,255,255,.7); font-size: 14px; margin-top: 4px; }
+    .box {
+      background: #fff; border-radius: 20px; padding: 32px 28px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    }
+    .flash {
+      background: #fce8e6; color: #b31412; border-radius: 8px;
+      padding: 10px 14px; font-size: 14px; margin-bottom: 16px;
+    }
+    label { display: block; font-size: 13px; color: #555; font-weight: 600; margin-bottom: 6px; }
+    input {
+      display: block; width: 100%; padding: 14px 16px;
+      border: 1.5px solid #dde3ea; border-radius: 10px;
+      font-size: 17px; margin-bottom: 16px; font-family: inherit;
+      -webkit-appearance: none;
+    }
+    input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,.18); }
+    button {
+      width: 100%; padding: 15px; background: #1a73e8; color: #fff;
+      border: none; border-radius: 12px; font-size: 17px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+    button:active { opacity: .8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">
+      <div class="icon">📋</div>
+      <h1>成形管理日報</h1>
+      <p>アンビテック</p>
+    </div>
+    <div class="box">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+      <form method="post">
+        <label>ユーザー名</label>
+        <input type="text" name="username" autocomplete="username"
+               autocapitalize="none" autocorrect="off" required>
+        <label>パスワード</label>
+        <input type="password" name="password" autocomplete="current-password" required>
+        <button type="submit">ログイン</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

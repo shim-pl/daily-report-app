@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}日報一覧{% endblock %}
+
+{% block topnav %}
+<span class="title">📋 日報一覧</span>
+{% endblock %}
+
+{% block content %}
+
+<!-- フィルター -->
+<div class="card">
+  <div class="card-body" style="padding:12px;">
+    <form method="get" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+      <div style="flex:1; min-width:110px;">
+        <label class="form-label" style="font-size:12px;">ステータス</label>
+        <select name="status" class="form-control" style="padding:10px 32px 10px 10px; font-size:14px;">
+          <option value="">すべて</option>
+          <option value="draft"    {% if status_filter=='draft' %}selected{% endif %}>下書き</option>
+          <option value="pending"  {% if status_filter=='pending' %}selected{% endif %}>承認待ち</option>
+          <option value="approved" {% if status_filter=='approved' %}selected{% endif %}>承認済み</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:130px;">
+        <label class="form-label" style="font-size:12px;">日付（から）</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="padding:10px; font-size:14px;">
+      </div>
+      <div style="flex:1; min-width:130px;">
+        <label class="form-label" style="font-size:12px;">日付（まで）</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="padding:10px; font-size:14px;">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">検索</button>
+      <a href="{{ url_for('report_list') }}" class="btn btn-secondary btn-sm">リセット</a>
+    </form>
+  </div>
+</div>
+
+<!-- 日報リスト -->
+<div class="card">
+  {% if reports %}
+    {% for r in reports %}
+    <a href="{{ url_for('report_detail', report_id=r.id) }}" style="display:block; text-decoration:none; color:inherit;">
+      <div class="list-item">
+        <div class="item-body">
+          <div class="item-title">{{ r.product_name }}</div>
+          <div class="item-sub">
+            {{ r.report_date }} ／ {{ r.machine_no }} ／ {{ r.operator_name }}
+          </div>
+          <div style="margin-top:5px;">
+            {% if r.status == 'draft' %}
+              <span class="badge badge-draft">下書き</span>
+            {% elif r.status == 'pending' %}
+              <span class="badge badge-pending">⏳ 承認待ち</span>
+            {% elif r.status == 'approved' %}
+              <span class="badge badge-approved">✓ 承認済み</span>
+            {% endif %}
+          </div>
+        </div>
+        <span class="item-arrow">›</span>
+      </div>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div style="padding:48px 16px; text-align:center; color:#999;">
+      <div style="font-size:40px; margin-bottom:8px;">📄</div>
+      <div>日報がありません</div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- FAB 新規作成ボタン -->
+<a href="{{ url_for('report_new') }}">
+  <button class="fab">＋</button>
+</a>
+
+{% endblock %}

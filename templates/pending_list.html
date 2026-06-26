@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}承認待ち{% endblock %}
+{% block topnav %}
+<span class="title">⏳ 承認待ち一覧</span>
+{% endblock %}
+{% block content %}
+<div class="card">
+  {% if reports %}
+    {% for r in reports %}
+    <a href="{{ url_for('report_detail', report_id=r.id) }}" style="display:block; text-decoration:none; color:inherit;">
+      <div class="list-item">
+        <div class="item-body">
+          <div class="item-title">{{ r.product_name }}</div>
+          <div class="item-sub">{{ r.report_date }} ／ {{ r.machine_no }} ／ {{ r.operator_name }}</div>
+          <div style="margin-top:4px; font-size:12px; color:#888;">申請：{{ r.submitted_at }}</div>
+        </div>
+        <span class="item-arrow">›</span>
+      </div>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div style="padding:60px 16px; text-align:center; color:#999;">
+      <div style="font-size:48px; margin-bottom:8px;">✅</div>
+      <div>承認待ちの日報はありません</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

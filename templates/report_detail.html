@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}日報詳細{% endblock %}
+
+{% block topnav %}
+<button class="back-btn" onclick="history.back()">‹</button>
+<span class="title">日報詳細</span>
+{% if report.status != 'approved' %}
+<a href="{{ url_for('report_edit', report_id=report.id) }}" class="nav-action">✏️ 編集</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- ステータス & 承認操作 -->
+<div class="card">
+  <div class="status-bar">
+    {% if report.status == 'draft' %}
+      <span class="badge badge-draft">下書き</span>
+    {% elif report.status == 'pending' %}
+      <span class="badge badge-pending">⏳ 承認待ち</span>
+    {% elif report.status == 'approved' %}
+      <span class="badge badge-approved">✓ 承認済み</span>
+    {% endif %}
+    {% if report.status == 'approved' %}
+      <span style="font-size:13px; color:#555;">{{ report.approved_by }} ／ {{ report.approved_at }}</span>
+    {% endif %}
+  </div>
+
+  {% if report.status == 'draft' %}
+  <div class="card-body">
+    <form method="post" action="{{ url_for('report_submit', report_id=report.id) }}">
+      <button type="submit" class="btn btn-primary btn-block">📨 承認申請する</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if current_user.is_admin() and report.status == 'pending' %}
+  <div class="card-body" style="padding-top:0;">
+    <form method="post" action="{{ url_for('report_approve', report_id=report.id) }}" style="margin-bottom:10px;">
+      <div class="form-group">
+        <label class="form-label">コメント（任意）</label>
+        <input type="text" name="comment" class="form-control" placeholder="承認コメント">
+      </div>
+      <button type="submit" class="btn btn-success btn-block">✓ 承認する</button>
+    </form>
+    <form method="post" action="{{ url_for('report_reject', report_id=report.id) }}">
+      <div class="form-group">
+        <label class="form-label">差し戻し理由</label>
+        <input type="text" name="comment" class="form-control" placeholder="差し戻し理由を入力">
+      </div>
+      <button type="submit" class="btn btn-warning btn-block">↩ 差し戻し</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 基本情報 -->
+<div class="card">
+  <div class="section-header">📌 基本情報</div>
+  <table class="detail-table">
+    <tr><th>日付</th><td>{{ report.report_date }}</td></tr>
+    <tr><th>ページ</th><td>{{ report.page_no }}</td></tr>
+    <tr><th>担当者</th><td>{{ report.operator_name }}</td></tr>
+    <tr><th>成形機</th><td>{{ report.machine_no }}</td></tr>
+    <tr><th>製品名</th><td>{{ report.product_name }}</td></tr>
+    <tr><th>型番</th><td>{{ report.mold_no or '—' }}</td></tr>
+    <tr><th>取数</th><td>{{ report.cavity_count or '—' }}</td></tr>
+    <tr><th>欠番</th><td>{{ report.missing_cavity or '—' }}</td></tr>
+  </table>
+</div>
+
+<!-- 材料 -->
+<div class="card">
+  <div class="section-header">🧪 材料情報</div>
+  <table class="detail-table">
+    <tr><th>材料名</th><td>{{ report.material_name or '—' }}</td></tr>
+    <tr><th>材料ロット</th><td>{{ report.material_lot or '—' }}</td></tr>
+    <tr><th>社内No.</th><td>{{ report.material_no or '—' }}</td></tr>
+  </table>
+</div>
+
+<!-- 成形条件 -->
+<div class="card">
+  <div class="section-header">⚙️ 成形条件</div>
+  <table class="detail-table">
+    <tr><th>射出速度 mm/s</th><td>{{ report.injection_speed or '—' }}</td></tr>
+    <tr><th>射出圧 MPa</th><td>{{ report.injection_pressure or '—' }}</td></tr>
+    <tr><th>保圧 MPa</th><td>{{ report.holding_pressure or '—' }}</td></tr>
+    <tr><th>保圧速度 mm/s</th><td>{{ report.holding_speed or '—' }}</td></tr>
+    <tr><th>射出時間 sec</th><td>{{ report.injection_time or '—' }}</td></tr>
+    <tr><th>保圧切替 sec</th><td>{{ report.holding_time or '—' }}</td></tr>
+    <tr><th>冷却時間 sec</th><td>{{ report.cooling_time or '—' }}</td></tr>
+    <tr><th>休止時間 sec</th><td>{{ report.rest_time or '—' }}</td></tr>
+    <tr><th>計量 mm</th><td>{{ report.metering_mm or '—' }}</td></tr>
+    <tr><th>型締力 kN</th><td>{{ report.clamping_force or '—' }}</td></tr>
+    <tr><th>背圧 MPa</th><td>{{ report.back_pressure or '—' }}</td></tr>
+    <tr><th>回転数 min⁻¹</th><td>{{ report.rotation_speed or '—' }}</td></tr>
+    <tr><th>CT sec</th><td>{{ report.cycle_time or '—' }}</td></tr>
+    <tr><th>クッション最小 mm</th><td>{{ report.cushion_min or '—' }}</td></tr>
+    <tr><th>HR出力異常</th><td>{{ '⚠️ 有' if report.hr_output_abnormal else '無' }}</td></tr>
+  </table>
+</div>
+
+<!-- ヒーター温度 -->
+{% if heater_temps %}
+<div class="card">
+  <div class="section-header">🌡️ ヒーター温度（℃）</div>
+  <div class="card-body">
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      {% for ht in heater_temps %}
+      <div style="background:#f0f4f8; padding:7px 12px; border-radius:8px; font-size:13px; text-align:center;">
+        <div style="color:#666; font-size:11px; font-weight:600;">{{ ht.zone_name }}</div>
+        <div style="font-weight:700; font-size:16px;">{{ ht.temperature }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- 生産実績 -->
+{% if production_records %}
+<div class="card">
+  <div class="section-header">📊 時間別生産実績</div>
+  {% for pr in production_records %}
+  <div class="list-item" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px;">
+    <div><div style="font-size:11px; color:#666;">開始</div><strong>{{ pr.time_from or '—' }}</strong></div>
+    <div><div style="font-size:11px; color:#666;">終了</div><strong>{{ pr.time_to or '—' }}</strong></div>
+    <div><div style="font-size:11px; color:#666;">ショット</div><strong>{{ pr.shot_count or '—' }}</strong></div>
+    <div><div style="font-size:11px; color:#666;">C/S</div><strong>{{ pr.cycle_per_shot or '—' }}</strong></div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- 品質記録 -->
+{% if quality_records %}
+<div class="card">
+  <div class="section-header">🔍 品質記録（不良数）</div>
+  {% for qr in quality_records %}
+  <div style="padding:12px 16px; border-bottom:1px solid #eee;">
+    <div style="font-weight:700; margin-bottom:8px; color:#1a3c5e;">{{ qr.record_time or '—' }}</div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+      {% for label, val in [
+        ('ウエルド',qr.defect_weld),('バリ',qr.defect_flash),('ショート',qr.defect_short),
+        ('ゲート',qr.defect_gate),('欠け・傷',qr.defect_scratch),('異物',qr.defect_foreign),
+        ('PL面ズレ',qr.defect_pl),('色調',qr.defect_color),('その他',qr.defect_other)
+      ] %}
+      <div style="background:{% if val > 0 %}#fce8e6{% else %}#f5f5f5{% endif %}; padding:6px 8px; border-radius:6px; text-align:center;">
+        <div style="font-size:10px; color:#666;">{{ label }}</div>
+        <div style="font-weight:700; font-size:16px; color:{% if val > 0 %}#c5221f{% else %}#333{% endif %};">{{ val }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- 特記事項 -->
+{% if report.remarks %}
+<div class="card">
+  <div class="section-header">📝 特記事項</div>
+  <div class="card-body">
+    <p style="white-space:pre-wrap; line-height:1.7;">{{ report.remarks }}</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- 承認履歴 -->
+{% if approval_logs %}
+<div class="card">
+  <div class="section-header">📜 承認履歴</div>
+  {% for log in approval_logs %}
+  <div class="list-item">
+    <div class="item-body">
+      <div class="item-title">{{ log.action }}  <span style="font-size:13px; color:#1a73e8; font-weight:500;">{{ log.actor }}</span></div>
+      <div class="item-sub">{{ log.created_at }}{% if log.comment %} ／ {{ log.comment }}{% endif %}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

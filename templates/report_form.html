@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}{{ '日報編集' if report else '日報新規作成' }}{% endblock %}
+
+{% block topnav %}
+<button class="back-btn" onclick="history.back()">‹</button>
+<span class="title">{{ '編集' if report else '新規作成' }}</span>
+<button type="submit" form="report-form" class="nav-action">💾 保存</button>
+{% endblock %}
+
+{% block content %}
+<form id="report-form" method="post">
+
+<!-- ① 基本情報 -->
+<div class="card">
+  <div class="section-header">📌 基本情報</div>
+  <div class="card-body">
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">日付<span class="required">*</span></label>
+        <input type="date" name="report_date" class="form-control"
+               value="{{ report.report_date if report else today }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ページ</label>
+        <input type="number" name="page_no" class="form-control" inputmode="numeric"
+               value="{{ report.page_no if report else 1 }}" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">担当者<span class="required">*</span></label>
+      <select name="operator_name" class="form-control" required>
+        <option value="">選択してください</option>
+        {% for op in operators %}
+          <option value="{{ op.name }}" {{ 'selected' if report and report.operator_name==op.name }}>{{ op.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">成形機<span class="required">*</span></label>
+      <input type="text" name="machine_no" class="form-control"
+             value="{{ report.machine_no if report else '' }}" placeholder="例：3号機" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">製品名<span class="required">*</span></label>
+      <select name="product_name" class="form-control" required>
+        <option value="">選択してください</option>
+        {% for p in products %}
+          <option value="{{ p.name }}" {{ 'selected' if report and report.product_name==p.name }}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">型番</label>
+        <input type="text" name="mold_no" class="form-control"
+               value="{{ report.mold_no if report else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">取数</label>
+        <input type="number" name="cavity_count" class="form-control" inputmode="numeric"
+               value="{{ report.cavity_count if report else '' }}" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">欠番</label>
+      <input type="text" name="missing_cavity" class="form-control"
+             value="{{ report.missing_cavity if report else '' }}" placeholder="例：3,7">
+    </div>
+  </div>
+</div>
+
+<!-- ② 材料情報 -->
+<div class="card">
+  <div class="section-header">🧪 材料情報</div>
+  <div class="card-body">
+    <div class="form-group">
+      <label class="form-label">材料名</label>
+      <input type="text" name="material_name" class="form-control"
+             value="{{ report.material_name if report else '' }}">
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">材料ロット</label>
+        <input type="text" name="material_lot" class="form-control"
+               value="{{ report.material_lot if report else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">社内No.</label>
+        <input type="text" name="material_no" class="form-control"
+               value="{{ report.material_no if report else '' }}">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 成形条件 -->
+<div class="card">
+  <div class="section-header">⚙️ 成形条件</div>
+  <div class="card-body">
+    {% set conds = [
+      ('injection_speed','射出速度','mm/s'), ('injection_pressure','射出圧','MPa'),
+      ('holding_pressure','保圧','MPa'), ('holding_speed','保圧速度','mm/s'),
+      ('injection_time','射出時間','sec'), ('holding_time','保圧切替','sec'),
+      ('cooling_time','冷却時間','sec'), ('rest_time','休止時間','sec'),
+      ('metering_mm','計量','mm'), ('clamping_force','型締力','kN'),
+      ('back_pressure','背圧','MPa'), ('rotation_speed','回転数','min⁻¹'),
+      ('cycle_time','CT','sec'), ('cushion_min','クッション最小','mm')
+    ] %}
+    <div class="form-grid-2">
+      {% for field, label, unit in conds %}
+      <div class="form-group">
+        <label class="form-label">{{ label }}<span style="font-size:11px; color:#888; margin-left:3px;">{{ unit }}</span></label>
+        <input type="number" step="any" name="{{ field }}" class="form-control"
+               inputmode="decimal"
+               value="{{ report[field] if report and report[field] is not none else '' }}">
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-group" style="margin-top:4px;">
+      <label style="display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer; padding:12px; background:#fff3cd; border-radius:10px;">
+        <input type="checkbox" name="hr_output_abnormal" value="1"
+               style="width:22px; height:22px;"
+               {{ 'checked' if report and report.hr_output_abnormal }}>
+        <span>ホットランナー 出力異常 50%以上</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ④ ヒーター温度 -->
+<div class="card">
+  <div class="section-header">🌡️ ヒーター温度（℃）</div>
+  <div class="card-body">
+    <p style="font-size:12px; color:#666; margin-bottom:10px; font-weight:600;">シリンダー</p>
+    <div class="temp-grid" style="grid-template-columns: repeat(3, 1fr);">
+      {% for z in ['N1','N2','1','2','3','4'] %}
+        {% set tv = '' %}
+        {% for ht in heater_temps %}{% if ht.zone_name == z %}{% set tv = ht.temperature %}{% endif %}{% endfor %}
+        <div class="temp-cell">
+          <span class="temp-label">{{ z }}</span>
+          <input type="number" step="any" name="heater_{{ z }}" value="{{ tv }}" inputmode="decimal">
+        </div>
+      {% endfor %}
+    </div>
+    <p style="font-size:12px; color:#666; margin:14px 0 10px; font-weight:600;">ホットランナー</p>
+    <div class="temp-grid">
+      {% for z in ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','マニホールド','スプル'] %}
+        {% set tv = '' %}
+        {% for ht in heater_temps %}{% if ht.zone_name == z %}{% set tv = ht.temperature %}{% endif %}{% endfor %}
+        <div class="temp-cell">
+          <span class="temp-label">HR{{ z }}</span>
+          <input type="number" step="any" name="heater_{{ z }}" value="{{ tv }}" inputmode="decimal">
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ 時間別生産実績 -->
+<div class="card">
+  <div class="section-header">📊 時間別生産実績</div>
+  <div class="card-body" id="prod-container">
+    {% if production_records %}
+      {% for pr in production_records %}
+      <div class="repeat-card">
+        <div class="repeat-card-header">
+          <span class="row-label">記録 {{ loop.index }}</span>
+          <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.repeat-card').remove()">削除</button>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">開始時間</label>
+            <input type="time" name="prod_time_from" class="form-control" value="{{ pr.time_from or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">終了時間</label>
+            <input type="time" name="prod_time_to" class="form-control" value="{{ pr.time_to or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ショット数</label>
+            <input type="number" name="prod_shot_count" class="form-control" inputmode="numeric" value="{{ pr.shot_count or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">C/S</label>
+            <input type="number" step="any" name="prod_cycle" class="form-control" inputmode="decimal" value="{{ pr.cycle_per_shot or '' }}">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      {% for i in range(3) %}
+      <div class="repeat-card">
+        <div class="repeat-card-header">
+          <span class="row-label">記録 {{ i+1 }}</span>
+          <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.repeat-card').remove()">削除</button>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">開始時間</label>
+            <input type="time" name="prod_time_from" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">終了時間</label>
+            <input type="time" name="prod_time_to" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ショット数</label>
+            <input type="number" name="prod_shot_count" class="form-control" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">C/S</label>
+            <input type="number" step="any" name="prod_cycle" class="form-control" inputmode="decimal">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  <div class="card-body" style="padding-top:0;">
+    <button type="button" class="btn btn-outline btn-block" onclick="addProdRow()">＋ 行を追加</button>
+  </div>
+</div>
+
+<!-- ⑥ 品質記録 -->
+<div class="card">
+  <div class="section-header">🔍 品質記録（不良数）</div>
+  <div class="card-body" id="qual-container">
+    {% set defect_fields = [
+      ('qual_weld','ウエルド'),('qual_flash','バリ'),('qual_short','ショート'),
+      ('qual_gate','ゲート'),('qual_scratch','欠け・傷'),('qual_foreign','異物'),
+      ('qual_pl','PL面ズレ'),('qual_color','色調'),('qual_other','その他')
+    ] %}
+    {% if quality_records %}
+      {% for qr in quality_records %}
+      <div class="repeat-card">
+        <div class="repeat-card-header">
+          <span class="row-label">検査 {{ loop.index }}</span>
+          <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.repeat-card').remove()">削除</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">時間</label>
+          <input type="time" name="qual_time" class="form-control" value="{{ qr.record_time or '' }}">
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group"><label class="form-label">ウエルド</label>
+            <input type="number" name="qual_weld" class="form-control" inputmode="numeric" value="{{ qr.defect_weld }}" min="0"></div>
+          <div class="form-group"><label class="form-label">バリ</label>
+            <input type="number" name="qual_flash" class="form-control" inputmode="numeric" value="{{ qr.defect_flash }}" min="0"></div>
+          <div class="form-group"><label class="form-label">ショート</label>
+            <input type="number" name="qual_short" class="form-control" inputmode="numeric" value="{{ qr.defect_short }}" min="0"></div>
+          <div class="form-group"><label class="form-label">ゲート</label>
+            <input type="number" name="qual_gate" class="form-control" inputmode="numeric" value="{{ qr.defect_gate }}" min="0"></div>
+          <div class="form-group"><label class="form-label">欠け・傷</label>
+            <input type="number" name="qual_scratch" class="form-control" inputmode="numeric" value="{{ qr.defect_scratch }}" min="0"></div>
+          <div class="form-group"><label class="form-label">異物</label>
+            <input type="number" name="qual_foreign" class="form-control" inputmode="numeric" value="{{ qr.defect_foreign }}" min="0"></div>
+          <div class="form-group"><label class="form-label">PL面ズレ</label>
+            <input type="number" name="qual_pl" class="form-control" inputmode="numeric" value="{{ qr.defect_pl }}" min="0"></div>
+          <div class="form-group"><label class="form-label">色調</label>
+            <input type="number" name="qual_color" class="form-control" inputmode="numeric" value="{{ qr.defect_color }}" min="0"></div>
+          <div class="form-group"><label class="form-label">その他</label>
+            <input type="number" name="qual_other" class="form-control" inputmode="numeric" value="{{ qr.defect_other }}" min="0"></div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      {% for i in range(2) %}
+      <div class="repeat-card">
+        <div class="repeat-card-header">
+          <span class="row-label">検査 {{ i+1 }}</span>
+          <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.repeat-card').remove()">削除</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">時間</label>
+          <input type="time" name="qual_time" class="form-control">
+        </div>
+        <div class="form-grid-3">
+          {% for fname, flabel in [('qual_weld','ウエルド'),('qual_flash','バリ'),('qual_short','ショート'),
+            ('qual_gate','ゲート'),('qual_scratch','欠け・傷'),('qual_foreign','異物'),
+            ('qual_pl','PL面ズレ'),('qual_color','色調'),('qual_other','その他')] %}
+          <div class="form-group"><label class="form-label">{{ flabel }}</label>
+            <input type="number" name="{{ fname }}" class="form-control" inputmode="numeric" value="0" min="0"></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  <div class="card-body" style="padding-top:0;">
+    <button type="button" class="btn btn-outline btn-block" onclick="addQualRow()">＋ 行を追加</button>
+  </div>
+</div>
+
+<!-- ⑦ 特記事項 -->
+<div class="card">
+  <div class="section-header">📝 特記事項</div>
+  <div class="card-body">
+    <textarea name="remarks" class="form-control" rows="4"
+              placeholder="特記事項があれば入力してください">{{ report.remarks if report else '' }}</textarea>
+  </div>
+</div>
+
+<div style="height:8px;"></div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let prodCount = document.querySelectorAll('#prod-container .repeat-card').length;
+let qualCount = document.querySelectorAll('#qual-container .repeat-card').length;
+
+function addProdRow() {
+  prodCount++;
+  const container = document.getElementById('prod-container');
+  const div = document.createElement('div');
+  div.className = 'repeat-card';
+  div.innerHTML = `
+    <div class="repeat-card-header">
+      <span class="row-label">記録 ${prodCount}</span>
+      <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.repeat-card').remove()">削除</button>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">開始時間</label>
+        <input type="time" name="prod_time_from" class="form-control"></div>
+      <div class="form-group"><label class="form-label">終了時間</label>
+        <input type="time" name="prod_time_to" class="form-control"></div>
+      <div class="form-group"><label class="form-label">ショット数</label>
+        <input type="number" name="prod_shot_count" class="form-control" inputmode="numeric"></div>
+      <div class="form-group"><label class="form-label">C/S</label>
+        <input type="number" step="any" name="prod_cycle" class="form-control" inputmode="decimal"></div>
+    </div>`;
+  container.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function addQualRow() {
+  qualCount++;
+  const container = document.getElementById('qual-container');
+  const div = document.createElement('div');
+  div.className = 'repeat-card';
+  const defects = [
+    ['qual_weld','ウエルド'],['qual_flash','バリ'],['qual_short','ショート'],
+    ['qual_gate','ゲート'],['qual_scratch','欠け・傷'],['qual_foreign','異物'],
+    ['qual_pl','PL面ズレ'],['qual_color','色調'],['qual_other','その他']
+  ];
+  const defectHTML = defects.map(([n,l]) =>
+    `<div class="form-group"><label class="form-label">${l}</label>
+     <input type="number" name="${n}" class="form-control" inputmode="numeric" value="0" min="0"></div>`
+  ).join('');
+  div.innerHTML = `
+    <div class="repeat-card-header">
+      <span class="row-label">検査 ${qualCount}</span>
+      <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.repeat-card').remove()">削除</button>
+    </div>
+    <div class="form-group"><label class="form-label">時間</label>
+      <input type="time" name="qual_time" class="form-control"></div>
+    <div class="form-grid-3">${defectHTML}</div>`;
+  container.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+{% endblock %}

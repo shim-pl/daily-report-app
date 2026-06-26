@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}マスタ管理{% endblock %}
+{% block topnav %}<span class="title">⚙️ マスタ管理</span>{% endblock %}
+{% block content %}
+
+<!-- 製品マスタ -->
+<div class="card">
+  <div class="section-header">🏭 製品マスタ</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('product_add') }}">
+      <div class="form-group"><label class="form-label">製品名<span class="required">*</span></label>
+        <input type="text" name="name" class="form-control" placeholder="製品名" required></div>
+      <div class="form-grid-2">
+        <div class="form-group"><label class="form-label">材料</label>
+          <input type="text" name="material" class="form-control" placeholder="材料名"></div>
+        <div class="form-group"><label class="form-label">型番</label>
+          <input type="text" name="mold_no" class="form-control" placeholder="型番"></div>
+      </div>
+      <div class="form-group"><label class="form-label">取数</label>
+        <input type="number" name="cavity_count" class="form-control" inputmode="numeric" placeholder="取数"></div>
+      <button type="submit" class="btn btn-primary btn-block">追加</button>
+    </form>
+  </div>
+  {% for p in products %}
+  <div class="list-item">
+    <div class="item-body">
+      <div class="item-title">{{ p.name }}</div>
+      <div class="item-sub">{{ p.material or '—' }} ／ {{ p.mold_no or '—' }} ／ {{ p.cavity_count or '—' }}取</div>
+    </div>
+    <form method="post" action="{{ url_for('product_delete', pid=p.id) }}" onsubmit="return confirm('削除しますか？');">
+      <button type="submit" class="btn btn-danger btn-sm">削除</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- 担当者マスタ -->
+<div class="card">
+  <div class="section-header">👷 担当者マスタ</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('operator_add') }}" style="display:flex; gap:8px;">
+      <input type="text" name="name" class="form-control" placeholder="担当者名" required>
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">追加</button>
+    </form>
+  </div>
+  {% for op in operators %}
+  <div class="list-item">
+    <div class="item-body"><div class="item-title">{{ op.name }}</div></div>
+    <form method="post" action="{{ url_for('operator_delete', oid=op.id) }}" onsubmit="return confirm('削除しますか？');">
+      <button type="submit" class="btn btn-danger btn-sm">削除</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ユーザー管理 -->
+<div class="card">
+  <div class="section-header">👤 ユーザー管理</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('user_add') }}">
+      <div class="form-group"><label class="form-label">ユーザー名<span class="required">*</span></label>
+        <input type="text" name="username" class="form-control" autocapitalize="none" required></div>
+      <div class="form-group"><label class="form-label">パスワード（8文字以上）<span class="required">*</span></label>
+        <input type="password" name="password" class="form-control" required></div>
+      <div class="form-group"><label class="form-label">役割</label>
+        <select name="role" class="form-control">
+          <option value="staff">スタッフ</option>
+          <option value="admin">管理者</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">ユーザー追加</button>
+    </form>
+  </div>
+  {% for u in users %}
+  <div class="list-item">
+    <div class="item-body">
+      <div class="item-title">{{ u.username }}</div>
+      <div class="item-sub">{{ '管理者' if u.role=='admin' else 'スタッフ' }} ／ {{ u.created_at }}</div>
+    </div>
+    <form method="post" action="{{ url_for('user_delete', uid=u.id) }}" onsubmit="return confirm('削除しますか？');">
+      <button type="submit" class="btn btn-danger btn-sm">削除</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
